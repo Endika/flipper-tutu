@@ -47,7 +47,7 @@ levels:
 	node tools/gen-levels-header.mjs
 
 # --- format / lint ---
-FORMAT_FILES := $(shell git ls-files '*.c' '*.h' 2>/dev/null)
+FORMAT_FILES := $(shell git ls-files '*.c' '*.h' 2>/dev/null | grep -v 'levels_data\.h')
 format:
 	clang-format -i $(FORMAT_FILES)
 linter:
