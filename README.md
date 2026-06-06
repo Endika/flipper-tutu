@@ -2,6 +2,21 @@
 
 Sliding car puzzle ([Rush Hour](https://en.wikipedia.org/wiki/Rush_Hour_(puzzle))) for the [Flipper Zero](https://flipperzero.one/): 100 pre-generated levels with steadily increasing difficulty (optimal-solution length from ~2 up to ~24 moves), sequential unlock, and progress saved to the SD card.
 
+## Features
+
+- 100 pre-generated, solver-verified levels embedded in the app (no generation on the device).
+- Difficulty curve that climbs steadily, with the hard ramp kicking in around level 75 (up to ~24 optimal moves).
+- Cycle-and-slide controls: pick a car with OK, slide it along its lane with the D-pad.
+- Sequential unlock; per-level completion and highest-unlocked progress saved to the SD card.
+- Level-select grid showing locked / playable / completed states, plus a Credits screen.
+- Fully offline — no network, no accounts.
+
+## Screenshots
+
+| Level select | Gameplay |
+| --- | --- |
+| ![Level select: grid of levels with completed, current and locked states](assets/menu.png) | ![Gameplay: the board with cars and the exit arrow on the right](assets/game.png) |
+
 ## Controls
 
 **Game screen**
