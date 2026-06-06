@@ -3,6 +3,7 @@
 #include "../../include/domain/board.h"
 #include "../../include/persistence/progress.h"
 #include "../../include/platform/storage_port.h"
+#include "../../include/version.h"
 
 #include <furi.h>
 #include <gui/gui.h>
@@ -12,7 +13,7 @@
 #define BY 2
 #define CELL 10
 
-typedef enum { ScreenMenu, ScreenGame, ScreenWin } Screen;
+typedef enum { ScreenMenu, ScreenGame, ScreenWin, ScreenCredits } Screen;
 
 typedef struct {
     Gui *gui;
@@ -24,7 +25,8 @@ typedef struct {
     Screen screen;
     TutuProgress progress;
 
-    uint16_t level_index; // current level (also menu cursor in Task 9)
+    uint16_t level_index; // current level
+    uint16_t menu_cursor; // 0..99, selected level in the menu grid
     TutuBoard board;
     uint8_t selected; // highlighted piece index
     uint16_t moves;
@@ -95,7 +97,8 @@ static void draw_win(Canvas *canvas, TutuApp *app) {
     canvas_draw_str_aligned(canvas, 64, 54, AlignCenter, AlignCenter, "OK: next  Back: menu");
 }
 
-static void draw_menu(Canvas *canvas, TutuApp *app); // defined in Task 9
+static void draw_menu(Canvas *canvas, TutuApp *app);    // defined below
+static void draw_credits(Canvas *canvas, TutuApp *app); // defined below
 
 static void render_cb(Canvas *canvas, void *ctx) {
     TutuApp *app = ctx;
@@ -111,6 +114,9 @@ static void render_cb(Canvas *canvas, void *ctx) {
         case ScreenWin:
             draw_win(canvas, app);
             break;
+        case ScreenCredits:
+            draw_credits(canvas, app);
+            break;
     }
     furi_mutex_release(app->mutex);
 }
@@ -122,9 +128,10 @@ static void input_cb(InputEvent *event, void *ctx) {
 
 // ---- input handling per screen ----
 
-static void handle_game_input(TutuApp *app, InputEvent *e); // below
-static void handle_menu_input(TutuApp *app, InputEvent *e); // Task 9
-static void handle_win_input(TutuApp *app, InputEvent *e);  // Task 9
+static void handle_game_input(TutuApp *app, InputEvent *e);    // below
+static void handle_menu_input(TutuApp *app, InputEvent *e);    // below
+static void handle_win_input(TutuApp *app, InputEvent *e);     // below
+static void handle_credits_input(TutuApp *app, InputEvent *e); // below
 
 static void handle_game_input(TutuApp *app, InputEvent *e) {
     TutuPiece *sel = &app->board.pieces[app->selected];
@@ -189,10 +196,9 @@ static TutuApp *app_alloc(void) {
     view_port_update(app->view_port); // force first draw — do NOT rely on the Apps-menu
                                       // loader animation (blank-UI-from-favourites bug)
 
+    app->menu_cursor = app->progress.highest_unlocked;
     app->screen = ScreenMenu;
-    app->level_index = app->progress.highest_unlocked;
-    load_level(app, app->level_index);
-    app->screen = ScreenMenu; // start on menu (Task 9); Task 8 stub menu jumps to game
+    // do not pre-load a level here; load happens on OK from the menu
     return app;
 }
 
@@ -226,6 +232,9 @@ int32_t tutu_app_run(void) {
                     case ScreenWin:
                         handle_win_input(app, &event);
                         break;
+                    case ScreenCredits:
+                        handle_credits_input(app, &event);
+                        break;
                 }
             }
             furi_mutex_release(app->mutex);
@@ -237,26 +246,122 @@ int32_t tutu_app_run(void) {
     return 0;
 }
 
-// TEMP stubs — replaced in Task 9
+// ---- menu (level select) ----
+
+#define MENU_COLS 10
+#define MENU_ROWS 5
+#define MENU_PER_PAGE (MENU_COLS * MENU_ROWS)
+#define MENU_CW 12
+#define MENU_CH 11
+#define MENU_OX 4
+#define MENU_OY 4
+
 static void draw_menu(Canvas *canvas, TutuApp *app) {
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 28, AlignCenter, AlignCenter, "TUTU");
+    uint16_t page = app->menu_cursor / MENU_PER_PAGE;
+    uint16_t base = page * MENU_PER_PAGE;
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 46, AlignCenter, AlignCenter, "OK: play  Back: exit");
-    UNUSED(app);
+    for (uint16_t i = 0; i < MENU_PER_PAGE; i++) {
+        uint16_t n = base + i;
+        if (n >= tutu_levels_count())
+            break;
+        int col = i % MENU_COLS;
+        int row = i / MENU_COLS;
+        int x = MENU_OX + col * MENU_CW;
+        int y = MENU_OY + row * MENU_CH;
+        bool unlocked = tutu_progress_is_unlocked(&app->progress, n);
+        bool done = tutu_progress_is_completed(&app->progress, n);
+        bool cursor = (n == app->menu_cursor);
+        if (cursor) {
+            canvas_draw_box(canvas, x, y, MENU_CW - 1, MENU_CH - 1);
+            canvas_set_color(canvas, ColorWhite);
+        }
+        if (!unlocked) {
+            canvas_draw_frame(canvas, x + 1, y + 1, MENU_CW - 3, MENU_CH - 3); // locked
+        } else if (done) {
+            canvas_draw_disc(canvas, x + MENU_CW / 2 - 1, y + MENU_CH / 2 - 1, 2); // done dot
+        } else {
+            char b[4];
+            snprintf(b, sizeof(b), "%u", (unsigned)((n % 100) + 1) % 100); // tens digit hint
+            canvas_draw_str(canvas, x + 2, y + MENU_CH - 2, b);
+        }
+        if (cursor)
+            canvas_set_color(canvas, ColorBlack);
+    }
+    // footer: selected level number + credits hint
+    char foot[28];
+    snprintf(foot, sizeof(foot), "#%u play  hold:credits", (unsigned)(app->menu_cursor + 1));
+    canvas_draw_str(canvas, 2, 63, foot);
 }
+
 static void handle_menu_input(TutuApp *app, InputEvent *e) {
-    if (e->type == InputTypeShort && e->key == InputKeyOk)
-        load_level(app, app->progress.highest_unlocked);
+    if (e->type == InputTypeLong && e->key == InputKeyOk) {
+        app->screen = ScreenCredits;
+        return;
+    }
+    if (e->type != InputTypeShort && e->type != InputTypeRepeat)
+        return;
+    uint16_t cur = app->menu_cursor;
+    uint16_t count = tutu_levels_count();
+    switch (e->key) {
+        case InputKeyLeft:
+            if (cur > 0)
+                cur--;
+            break;
+        case InputKeyRight:
+            if (cur + 1 < count)
+                cur++;
+            break;
+        case InputKeyUp:
+            if (cur >= MENU_COLS)
+                cur -= MENU_COLS;
+            break;
+        case InputKeyDown:
+            if (cur + MENU_COLS < count)
+                cur += MENU_COLS;
+            break;
+        case InputKeyOk:
+            if (e->type == InputTypeShort && tutu_progress_is_unlocked(&app->progress, cur))
+                load_level(app, cur);
+            return;
+        default:
+            return;
+    }
+    app->menu_cursor = cur;
 }
+
+// ---- win flow ----
+
 static void handle_win_input(TutuApp *app, InputEvent *e) {
-    if (e->type == InputTypeShort && e->key == InputKeyOk) {
+    if (e->type != InputTypeShort)
+        return;
+    if (e->key == InputKeyOk) {
         uint16_t next = app->level_index + 1;
-        if (next < tutu_levels_count())
+        if (next < tutu_levels_count()) {
             load_level(app, next);
-        else
+        } else {
+            app->menu_cursor = app->level_index;
             app->screen = ScreenMenu;
-    } else if (e->type == InputTypeShort && e->key == InputKeyBack) {
+        }
+    } else if (e->key == InputKeyBack) {
+        app->menu_cursor = app->level_index;
         app->screen = ScreenMenu;
     }
+}
+
+// ---- credits ----
+
+static void draw_credits(Canvas *canvas, TutuApp *app) {
+    UNUSED(app);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, 64, 8, AlignCenter, AlignTop, "Tutu");
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignTop, "v" TUTU_VERSION "  by endika");
+    canvas_draw_str_aligned(canvas, 64, 36, AlignCenter, AlignTop, "github.com/Endika");
+    canvas_draw_str_aligned(canvas, 64, 46, AlignCenter, AlignTop, "/flipper-tutu");
+    canvas_draw_str_aligned(canvas, 64, 58, AlignCenter, AlignTop, "Back: menu");
+}
+
+static void handle_credits_input(TutuApp *app, InputEvent *e) {
+    if (e->type == InputTypeShort && e->key == InputKeyBack)
+        app->screen = ScreenMenu;
 }
