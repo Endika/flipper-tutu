@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/Endika/flipper-tutu/compare/v0.1.2...v0.1.3) (2026-06-06)
+
+
+### Bug Fixes
+
+* sync version.h with release-please (inline marker, was stuck at 0.1.0) ([1ba1d49](https://github.com/Endika/flipper-tutu/commit/1ba1d495ffd1df0ba46594eb2eb711596ad9b687))
+
 ## [0.1.2](https://github.com/Endika/flipper-tutu/compare/v0.1.1...v0.1.2) (2026-06-06)
 
 

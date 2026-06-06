@@ -6,7 +6,7 @@ App(
     stack_size=3 * 1024,
     fap_category="Games",
     fap_icon="icons/icon.icon",
-    fap_version="0.1.2",  # x-release-please-version
+    fap_version="0.1.3",  # x-release-please-version
     fap_author="endika",
     fap_description="Tutu - sliding car puzzle (Rush Hour), 100 levels",
     requires=["gui", "storage"],
