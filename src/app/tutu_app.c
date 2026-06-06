@@ -10,8 +10,8 @@
 #include <input/input.h>
 
 #define BX 2
-#define BY 2
-#define CELL 10
+#define BY 5
+#define CELL 9
 
 typedef enum { ScreenMenu, ScreenGame, ScreenWin, ScreenCredits } Screen;
 
@@ -55,36 +55,47 @@ static void draw_cell_rect(Canvas *c, const TutuPiece *p, int *x, int *y, int *w
 }
 
 static void draw_game(Canvas *canvas, TutuApp *app) {
-    // board frame
-    canvas_draw_frame(canvas, BX - 1, BY - 1, TUTU_SIZE * CELL + 2, TUTU_SIZE * CELL + 2);
-    // exit marker: arrow at right edge, exit row
-    int ey = BY + TUTU_EXIT_ROW * CELL + CELL / 2;
-    canvas_draw_line(canvas, BX + TUTU_SIZE * CELL, ey - 3, BX + TUTU_SIZE * CELL + 4, ey);
-    canvas_draw_line(canvas, BX + TUTU_SIZE * CELL, ey + 3, BX + TUTU_SIZE * CELL + 4, ey);
+    const int bw = TUTU_SIZE * CELL;
+    const int rx = BX + bw;                             // board right edge
+    const int ex_top = BY + TUTU_EXIT_ROW * CELL;       // exit cell top
+    const int ex_bot = BY + (TUTU_EXIT_ROW + 1) * CELL; // exit cell bottom
+
+    // Board frame, left OPEN on the right at the exit row so the way out is obvious.
+    canvas_draw_line(canvas, BX - 1, BY - 1, rx, BY - 1);      // top
+    canvas_draw_line(canvas, BX - 1, BY + bw, rx, BY + bw);    // bottom
+    canvas_draw_line(canvas, BX - 1, BY - 1, BX - 1, BY + bw); // left
+    canvas_draw_line(canvas, rx, BY - 1, rx, ex_top);          // right, above exit
+    canvas_draw_line(canvas, rx, ex_bot, rx, BY + bw);         // right, below exit
+
+    // Bold arrow pointing out through the gap — "the red car leaves here".
+    const int ay = ex_top + CELL / 2;
+    canvas_draw_box(canvas, rx - 1, ay - 1, 7, 3); // thick shaft
+    for (int t = -1; t <= 1; t++) {                // 3px-thick arrow head
+        canvas_draw_line(canvas, rx + 3, ay - 4, rx + 7, ay + t);
+        canvas_draw_line(canvas, rx + 3, ay + 4, rx + 7, ay + t);
+    }
 
     for (uint8_t i = 0; i < app->board.count; i++) {
         int x, y, w, h;
         draw_cell_rect(canvas, &app->board.pieces[i], &x, &y, &w, &h);
-        if (i == TUTU_RED) {
-            canvas_draw_rbox(canvas, x + 1, y + 1, w - 2, h - 2, 2); // solid = red car
-        } else {
-            canvas_draw_rframe(canvas, x + 1, y + 1, w - 2, h - 2, 2); // outline = others
-        }
-        if (i == app->selected && (app->blink & 4)) {
-            canvas_draw_rframe(canvas, x, y, w, h, 3); // blinking selection border
-        }
+        if (i == TUTU_RED)
+            canvas_draw_rbox(canvas, x + 1, y + 1, w - 2, h - 2, 2); // red car (solid)
+        else
+            canvas_draw_rframe(canvas, x + 1, y + 1, w - 2, h - 2, 2); // other cars
+        if (i == app->selected && (app->blink & 4))
+            canvas_draw_rframe(canvas, x, y, w, h, 2); // blinking selection
     }
 
-    // HUD
-    char buf[24];
+    // HUD column, well clear of the board and the exit arrow.
+    const int hx = rx + 12;
+    char buf[16];
     canvas_set_font(canvas, FontSecondary);
     snprintf(buf, sizeof(buf), "Lvl %u", (unsigned)(app->level_index + 1));
-    canvas_draw_str(canvas, 66, 12, buf);
+    canvas_draw_str(canvas, hx, 12, buf);
     snprintf(buf, sizeof(buf), "Moves %u", (unsigned)app->moves);
-    canvas_draw_str(canvas, 66, 26, buf);
-    canvas_draw_str(canvas, 66, 42, "OK: next");
-    canvas_draw_str(canvas, 66, 52, "hold: reset");
-    canvas_draw_str(canvas, 66, 62, "Back: menu");
+    canvas_draw_str(canvas, hx, 26, buf);
+    canvas_draw_str(canvas, hx, 48, "OK: car");
+    canvas_draw_str(canvas, hx, 60, "hold: rst");
 }
 
 static void draw_win(Canvas *canvas, TutuApp *app) {
@@ -257,9 +268,9 @@ int32_t tutu_app_run(void) {
 #define MENU_ROWS 5
 #define MENU_PER_PAGE (MENU_COLS * MENU_ROWS)
 #define MENU_CW 12
-#define MENU_CH 11
+#define MENU_CH 10
 #define MENU_OX 4
-#define MENU_OY 4
+#define MENU_OY 2
 
 static void draw_menu(Canvas *canvas, TutuApp *app) {
     uint16_t page = app->menu_cursor / MENU_PER_PAGE;
@@ -281,19 +292,20 @@ static void draw_menu(Canvas *canvas, TutuApp *app) {
             canvas_set_color(canvas, ColorWhite);
         }
         if (!unlocked) {
-            canvas_draw_frame(canvas, x + 1, y + 1, MENU_CW - 3, MENU_CH - 3); // locked
+            canvas_draw_frame(canvas, x + 2, y + 2, MENU_CW - 5, MENU_CH - 5); // locked
         } else if (done) {
             canvas_draw_disc(canvas, x + MENU_CW / 2 - 1, y + MENU_CH / 2 - 1, 2); // completed
         } else {
-            canvas_draw_frame(canvas, x + MENU_CW / 2 - 2, y + MENU_CH / 2 - 2, 4, 4); // playable
+            canvas_draw_box(canvas, x + MENU_CW / 2 - 2, y + MENU_CH / 2 - 2, 3, 3); // playable
         }
         if (cursor)
             canvas_set_color(canvas, ColorBlack);
     }
-    // footer: selected level number + credits hint
-    char foot[28];
-    snprintf(foot, sizeof(foot), "#%u play  hold:credits", (unsigned)(app->menu_cursor + 1));
-    canvas_draw_str(canvas, 2, 63, foot);
+    // footer: selected level (left) + credits hint (right), aligned so neither overflows
+    char lvl[12];
+    snprintf(lvl, sizeof(lvl), "Lvl %u", (unsigned)(app->menu_cursor + 1));
+    canvas_draw_str_aligned(canvas, 2, 63, AlignLeft, AlignBottom, lvl);
+    canvas_draw_str_aligned(canvas, 126, 63, AlignRight, AlignBottom, "hold=credits");
 }
 
 static void handle_menu_input(TutuApp *app, InputEvent *e) {
@@ -356,12 +368,12 @@ static void handle_win_input(TutuApp *app, InputEvent *e) {
 static void draw_credits(Canvas *canvas, TutuApp *app) {
     UNUSED(app);
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 8, AlignCenter, AlignTop, "Tutu");
+    canvas_draw_str_aligned(canvas, 64, 2, AlignCenter, AlignTop, "Tutu");
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignTop, "v" TUTU_VERSION "  by endika");
-    canvas_draw_str_aligned(canvas, 64, 36, AlignCenter, AlignTop, "github.com/Endika");
-    canvas_draw_str_aligned(canvas, 64, 46, AlignCenter, AlignTop, "/flipper-tutu");
-    canvas_draw_str_aligned(canvas, 64, 58, AlignCenter, AlignTop, "Back: menu");
+    canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignTop, "v" TUTU_VERSION "  by endika");
+    canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignTop, "github.com/Endika");
+    canvas_draw_str_aligned(canvas, 64, 43, AlignCenter, AlignTop, "/flipper-tutu");
+    canvas_draw_str_aligned(canvas, 64, 55, AlignCenter, AlignTop, "Back: menu");
 }
 
 static void handle_credits_input(TutuApp *app, InputEvent *e) {
