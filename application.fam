@@ -7,8 +7,8 @@ App(
     fap_category="Games",
     fap_icon="icons/icon.icon",
     fap_version="0.1.4",  # x-release-please-version
-    fap_author="endika",
-    fap_description="Tutu - sliding car puzzle (Rush Hour), 100 levels",
+    fap_author="Endika",
+    fap_description="Sliding car puzzle (Rush Hour) with 100 levels of increasing difficulty.",
     requires=["gui", "storage"],
     sources=[
         "main.c",
