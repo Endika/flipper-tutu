@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/Endika/flipper-tutu/compare/v0.1.3...v0.1.4) (2026-06-06)
+
+
+### Bug Fixes
+
+* **ui:** icon now depicts the puzzle board with the hero car exiting ([29c45a6](https://github.com/Endika/flipper-tutu/commit/29c45a6252f0c05c57bc50c75e0edf1e2c13e4fc))
+
 ## [0.1.3](https://github.com/Endika/flipper-tutu/compare/v0.1.2...v0.1.3) (2026-06-06)
 
 
