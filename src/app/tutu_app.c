@@ -82,8 +82,9 @@ static void draw_game(Canvas *canvas, TutuApp *app) {
     canvas_draw_str(canvas, 66, 12, buf);
     snprintf(buf, sizeof(buf), "Moves %u", (unsigned)app->moves);
     canvas_draw_str(canvas, 66, 26, buf);
-    canvas_draw_str(canvas, 66, 52, "OK: next car");
-    canvas_draw_str(canvas, 66, 62, "Hold OK: reset");
+    canvas_draw_str(canvas, 66, 42, "OK: next");
+    canvas_draw_str(canvas, 66, 52, "hold: reset");
+    canvas_draw_str(canvas, 66, 62, "Back: menu");
 }
 
 static void draw_win(Canvas *canvas, TutuApp *app) {
@@ -134,45 +135,49 @@ static void handle_win_input(TutuApp *app, InputEvent *e);     // below
 static void handle_credits_input(TutuApp *app, InputEvent *e); // below
 
 static void handle_game_input(TutuApp *app, InputEvent *e) {
-    TutuPiece *sel = &app->board.pieces[app->selected];
-    if (e->type == InputTypeShort || e->type == InputTypeRepeat) {
-        switch (e->key) {
-            case InputKeyOk:
-                if (e->type == InputTypeShort)
-                    app->selected = tutu_board_next_piece(&app->board, app->selected);
-                break;
-            case InputKeyLeft:
-                if (sel->o == TUTU_H && tutu_board_move(&app->board, app->selected, -1))
-                    app->moves++;
-                break;
-            case InputKeyRight:
-                if (sel->o == TUTU_H && tutu_board_move(&app->board, app->selected, +1))
-                    app->moves++;
-                break;
-            case InputKeyUp:
-                if (sel->o == TUTU_V && tutu_board_move(&app->board, app->selected, -1))
-                    app->moves++;
-                break;
-            case InputKeyDown:
-                if (sel->o == TUTU_V && tutu_board_move(&app->board, app->selected, +1))
-                    app->moves++;
-                break;
-            default:
-                break;
-        }
-        if (tutu_board_won(&app->board)) {
-            tutu_progress_complete_and_unlock(&app->progress, app->level_index,
-                                              tutu_levels_count());
-            tutu_storage_save_progress(&app->progress);
-            app->screen = ScreenWin;
-        }
-    } else if (e->type == InputTypeLong) {
-        if (e->key == InputKeyOk)
-            load_level(app, app->level_index); // reset
-        else if (e->key == InputKeyBack)
-            app->screen = ScreenMenu; // Task 9 menu; reachable now as stub
-    } else if (e->type == InputTypeShort && e->key == InputKeyBack) {
+    // Back (short or long) returns to the level select, cursor on this level.
+    if (e->key == InputKeyBack && (e->type == InputTypeShort || e->type == InputTypeLong)) {
+        app->menu_cursor = app->level_index;
         app->screen = ScreenMenu;
+        return;
+    }
+    // Long OK resets the current level.
+    if (e->type == InputTypeLong && e->key == InputKeyOk) {
+        load_level(app, app->level_index);
+        return;
+    }
+    if (e->type != InputTypeShort && e->type != InputTypeRepeat)
+        return;
+
+    TutuPiece *sel = &app->board.pieces[app->selected];
+    switch (e->key) {
+        case InputKeyOk:
+            if (e->type == InputTypeShort) // cycle on tap only, never on auto-repeat
+                app->selected = tutu_board_next_piece(&app->board, app->selected);
+            break;
+        case InputKeyLeft:
+            if (sel->o == TUTU_H && tutu_board_move(&app->board, app->selected, -1))
+                app->moves++;
+            break;
+        case InputKeyRight:
+            if (sel->o == TUTU_H && tutu_board_move(&app->board, app->selected, +1))
+                app->moves++;
+            break;
+        case InputKeyUp:
+            if (sel->o == TUTU_V && tutu_board_move(&app->board, app->selected, -1))
+                app->moves++;
+            break;
+        case InputKeyDown:
+            if (sel->o == TUTU_V && tutu_board_move(&app->board, app->selected, +1))
+                app->moves++;
+            break;
+        default:
+            return;
+    }
+    if (tutu_board_won(&app->board)) {
+        tutu_progress_complete_and_unlock(&app->progress, app->level_index, tutu_levels_count());
+        tutu_storage_save_progress(&app->progress);
+        app->screen = ScreenWin;
     }
 }
 
@@ -278,11 +283,9 @@ static void draw_menu(Canvas *canvas, TutuApp *app) {
         if (!unlocked) {
             canvas_draw_frame(canvas, x + 1, y + 1, MENU_CW - 3, MENU_CH - 3); // locked
         } else if (done) {
-            canvas_draw_disc(canvas, x + MENU_CW / 2 - 1, y + MENU_CH / 2 - 1, 2); // done dot
+            canvas_draw_disc(canvas, x + MENU_CW / 2 - 1, y + MENU_CH / 2 - 1, 2); // completed
         } else {
-            char b[4];
-            snprintf(b, sizeof(b), "%u", (unsigned)((n % 100) + 1) % 100); // tens digit hint
-            canvas_draw_str(canvas, x + 2, y + MENU_CH - 2, b);
+            canvas_draw_frame(canvas, x + MENU_CW / 2 - 2, y + MENU_CH / 2 - 2, 4, 4); // playable
         }
         if (cursor)
             canvas_set_color(canvas, ColorBlack);
