@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/Endika/flipper-tutu/compare/v0.1.1...v0.1.2) (2026-06-06)
+
+
+### Bug Fixes
+
+* **ui:** add app icon, clearer exit arrow, fix menu footer and credits layout ([d19b2a8](https://github.com/Endika/flipper-tutu/commit/d19b2a8077a8e91850f134bf7c59f0f190ebee3d))
+
 ## [0.1.1](https://github.com/Endika/flipper-tutu/compare/v0.1.0...v0.1.1) (2026-06-06)
 
 
