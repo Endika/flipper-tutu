@@ -6,7 +6,6 @@ on:
   workflow_dispatch:
 
 permissions:
-  actions: write
   contents: write
   pull-requests: write
 
@@ -36,22 +35,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
           REPO: ${{ github.repository }}
-          WORKFLOW: ${{ github.workflow }}
           PR_JSON: ${{ steps.release.outputs.pr }}
-        run: |
-          PR=$(echo "$PR_JSON" | jq -r .number)
-          BRANCH=$(echo "$PR_JSON" | jq -r .headBranchName)
-          gh pr merge --rebase --auto -R "$REPO" "$PR" \
-            || gh pr merge --rebase -R "$REPO" "$PR" \
-            || gh api -X PATCH "repos/$REPO/git/refs/heads/main" \
-                 -f sha="$(gh api "repos/$REPO/git/refs/heads/$BRANCH" --jq .object.sha)"
-          for _ in $(seq 1 30); do
-            STATE=$(gh pr view "$PR" -R "$REPO" --json state --jq .state)
-            [ "$STATE" = "MERGED" ] && break
-            sleep 2
-          done
-          gh api -X DELETE "repos/$REPO/git/refs/heads/$BRANCH" 2>/dev/null || true
-          gh workflow run "$WORKFLOW" -R "$REPO" --ref main
+        run: gh pr merge --rebase --auto -R "$REPO" "$(echo "$PR_JSON" | jq -r .number)"
 
       # When a release is actually published, build the FAP and attach it.
       - if: ${{ steps.release.outputs.release_created }}
