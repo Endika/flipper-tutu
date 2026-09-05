@@ -9,7 +9,7 @@ FLIPPER_FIRMWARE_PATH ?= <Path>/flipperzero-firmware
 PWD = $(shell pwd)
 
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c11 -I.
+CFLAGS = -Wall -Wextra -Werror -std=c11 -I.
 
 .PHONY: all help test prepare fap clean clean_firmware format linter levels
 all: test
@@ -51,10 +51,9 @@ FORMAT_FILES := $(shell git ls-files '*.c' '*.h' 2>/dev/null | grep -v 'levels_d
 format:
 	clang-format -i $(FORMAT_FILES)
 linter:
-	cppcheck --enable=all --inline-suppr -I. \
+	cppcheck --enable=all --inline-suppr --error-exitcode=1 -I. \
 	  --suppress=missingIncludeSystem \
 	  --suppress=unusedFunction:main.c \
-	  --suppress=unusedFunction:src/app/tutu_app.c \
 	  src/domain/board.c src/data/levels.c src/persistence/progress.c \
 	  src/platform/storage_port.c src/app/tutu_app.c main.c
 
