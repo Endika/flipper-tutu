@@ -55,7 +55,8 @@ linter:
 	  --suppress=missingIncludeSystem \
 	  --suppress=unusedFunction:main.c \
 	  src/domain/board.c src/data/levels.c src/persistence/progress.c \
-	  src/platform/storage_port.c src/app/tutu_app.c main.c
+	  src/platform/storage_port.c src/app/tutu_app.c main.c \
+	  tests/test_board.c tests/test_progress.c tests/test_levels_data.c
 
 # --- build the .fap ---
 prepare:

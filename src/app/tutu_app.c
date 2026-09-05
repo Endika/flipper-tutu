@@ -196,6 +196,8 @@ static void handle_game_input(TutuApp *app, const InputEvent *e) {
 
 static TutuApp *app_alloc(void) {
     TutuApp *app = malloc(sizeof(TutuApp));
+    furi_check(app);
+
     app->gui = furi_record_open(RECORD_GUI);
     app->view_port = view_port_alloc();
     app->input_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
