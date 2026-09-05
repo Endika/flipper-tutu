@@ -89,7 +89,7 @@ static void draw_game(Canvas *canvas, TutuApp *app) {
     // HUD column, well clear of the board and the exit arrow.
     const int hx = rx + 12;
     char buf[16];
-    canvas_set_font(canvas, FontSecondary);
+    canvas_set_font(canvas, FontTertiary);
     snprintf(buf, sizeof(buf), "Lvl %u", (unsigned)(app->level_index + 1));
     canvas_draw_str(canvas, hx, 12, buf);
     snprintf(buf, sizeof(buf), "Moves %u", (unsigned)app->moves);
