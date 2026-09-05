@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/Endika/flipper-tutu/compare/v0.1.6...v0.1.7) (2026-09-05)
+
+
+### Bug Fixes
+
+* make cppcheck clean under 2.21 ([abe557c](https://github.com/Endika/flipper-tutu/commit/abe557c53afd60620bf5b5850c67b2883f762c16))
+
 ## [0.1.6](https://github.com/Endika/flipper-tutu/compare/v0.1.5...v0.1.6) (2026-07-09)
 
 
