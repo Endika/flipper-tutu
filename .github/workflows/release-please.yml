@@ -40,7 +40,7 @@ jobs:
 
       # When a release is actually published, build the FAP and attach it.
       - if: ${{ steps.release.outputs.release_created }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Build FAP
         id: ufbt
