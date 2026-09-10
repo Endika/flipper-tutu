@@ -1,0 +1,8 @@
+version: 2
+updates:
+  # Only the action pins are versioned here: the repo has no package manifest —
+  # tools/gen-levels-header.mjs is plain node with no dependencies.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
